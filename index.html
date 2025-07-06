@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FOKECOIN Wallet</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <h1>FOKECOIN (FOKE) Wallet</h1>
+
+  <button onclick="connectWallet()">🔌 Conectar Wallet</button>
+  <p id="walletAddress">Wallet: no conectada</p>
+
+  <hr>
+
+  <h3>🔍 Consultar balance:</h3>
+  <button onclick="getBalance()">Ver mi balance FOKE</button>
+  <p id="balance">Balance: -</p>
+
+  <hr>
+
+  <h3>📤 Enviar FOKE:</h3>
+  <input type="text" id="recipient" placeholder="Dirección del receptor" size="50" />
+  <input type="number" id="amount" placeholder="Cantidad" />
+  <button onclick="sendFOKE()">Enviar</button>
+  <p id="txStatus"></p>
+
+  <script>
+    let provider;
+    let signer;
+    let contract;
+    let userAddress;
+
+    const contractAddress = "0x646BaB4ddca3028b4Ab7F7F9D72bE348e7F9BadE";
+
+    const abi = [
+      "function balanceOf(address owner) view returns (uint256)",
+      "function transfer(address to, uint256 amount) returns (bool)"
+    ];
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+        document.getElementById("walletAddress").innerText = `Wallet: ${userAddress}`;
+        contract = new ethers.Contract(contractAddress, abi, signer);
+      } else {
+        alert("Instala MetaMask para continuar.");
+      }
+    }
+
+    async function getBalance() {
+      if (!contract || !userAddress) return;
+      const balance = await contract.balanceOf(userAddress);
+      document.getElementById("balance").innerText = `Balance: ${ethers.formatUnits(balance, 18)} FOKE`;
+    }
+
+    async function sendFOKE() {
+      const recipient = document.getElementById("recipient").value;
+      const amount = document.getElementById("amount").value;
+      if (!recipient || !amount) return alert("Completa los campos.");
+      try {
+        const tx = await contract.transfer(recipient, ethers.parseUnits(amount, 18));
+        document.getElementById("txStatus").innerText = `Enviando... (${tx.hash})`;
+        await tx.wait();
+        document.getElementById("txStatus").innerText = "✅ Transacción completada";
+        getBalance();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("txStatus").innerText = "❌ Error en la transacción";
+      }
+    }
+  </script>
+</body>
+</html>
